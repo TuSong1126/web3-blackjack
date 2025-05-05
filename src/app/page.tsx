@@ -1,48 +1,96 @@
-'use client'
+"use client";
+import { useEffect, useState } from "react";
 
-import { useAccount, useConnect, useDisconnect } from 'wagmi'
+interface DeckItemType {
+  suit: string;
+  rank: string;
+}
+const suits = ["♠️", "♥️", "♦️", "♣️"];
+const ranks = [
+  "A",
+  "2",
+  "3",
+  "4",
+  "5",
+  "6",
+  "7",
+  "8",
+  "9",
+  "10",
+  "J",
+  "Q",
+  "K",
+];
+const initialDeck = suits
+  .map((suit) => ranks.map((rank) => ({ suit: suit, rank: rank })))
+  .flat();
 
-function App() {
-  const account = useAccount()
-  const { connectors, connect, status, error } = useConnect()
-  const { disconnect } = useDisconnect()
+export default function Page() {
+  const [winner, setWinner] = useState<string>("");
+  const [message, setMessage] = useState<string>("");
+  const [deck, setDeck] = useState<DeckItemType[]>([]);
+
+  useEffect(() => {
+    setWinner("player");
+    setMessage("Player win! black jack!");
+    setDeck(initialDeck);
+  }, []);
 
   return (
-    <>
-      <div>
-        <h2>Account</h2>
+    <div className="flex flex-col items-center h-screen bg-gray-400">
+      <h1 className="my-4 text-4xl bold">Welcome the black jack game!</h1>
+      <h2
+        className={`my-4 text-2xl bold
+        ${winner === "player" ? "bg-green-500" : "bg-yellow-500"}`}
+      >
+        {message}
+      </h2>
 
-        <div>
-          status: {account.status}
-          <br />
-          addresses: {JSON.stringify(account.addresses)}
-          <br />
-          chainId: {account.chainId}
+      <div>
+        dealer hand:
+        <div className="flex flex-row gap-2">
+          {deck.length === 0 ? (
+            <></>
+          ) : (
+            deck.slice(0, 3).map((card, index) => (
+              <div
+                className="h-42 w-28 border-black border-1 flex flex-col justify-between rounded-sm bg-white"
+                key={index}
+              >
+                <h2 className="self-start text-2xl pt-3 pl-3">{card.rank}</h2>
+                <h2 className="self-center text-3xl">{card.suit}</h2>
+                <h2 className="self-end text-2xl pb-3 pr-3">{card.rank}</h2>
+              </div>
+            ))
+          )}
         </div>
-
-        {account.status === 'connected' && (
-          <button type="button" onClick={() => disconnect()}>
-            Disconnect
-          </button>
-        )}
       </div>
 
       <div>
-        <h2>Connect</h2>
-        {connectors.map((connector) => (
-          <button
-            key={connector.uid}
-            onClick={() => connect({ connector })}
-            type="button"
-          >
-            {connector.name}
-          </button>
-        ))}
-        <div>{status}</div>
-        <div>{error?.message}</div>
+        Player hand hand:
+        <div className="flex flex-row gap-2">
+          {deck.length === 0 ? (
+            <></>
+          ) : (
+            deck.slice(0, 3).map((card, index) => (
+              <div
+                className="h-42 w-28 border-black border-1 flex flex-col justify-between rounded-sm bg-white"
+                key={index}
+              >
+                <h2 className="self-start text-2xl pt-3 pl-3">{card.rank}</h2>
+                <h2 className="self-center text-3xl">{card.suit}</h2>
+                <h2 className="self-end text-2xl pb-3 pr-3">{card.rank}</h2>
+              </div>
+            ))
+          )}
+        </div>
       </div>
-    </>
-  )
-}
 
-export default App
+      <div className="flex flex-row gap-2 mt-4">
+        <button className="p-1 bg-amber-300 rounded-lg"> hit </button>
+        <button className="p-1 bg-amber-300 rounded-lg"> stand </button>
+        <button className="p-1 bg-amber-300 rounded-lg"> reset </button>
+      </div>
+    </div>
+  );
+}
