@@ -65,7 +65,7 @@ export default function Page() {
       <h1 className="my-4 text-4xl bold">Welcome the black jack game!</h1>
       <h2
         className={`my-4 text-2xl bold
-        ${message === "玩家赢" ? "bg-green-500" : "bg-yellow-500"}`}
+        ${message.includes("玩家赢") ? "bg-green-500" : "bg-yellow-500"}`}
       >
         {message}
       </h2>
