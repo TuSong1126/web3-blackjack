@@ -1,47 +1,71 @@
 "use client";
 import { useEffect, useState } from "react";
 
-interface DeckItemType {
+interface Card {
   suit: string;
   rank: string;
 }
-const suits = ["♠️", "♥️", "♦️", "♣️"];
-const ranks = [
-  "A",
-  "2",
-  "3",
-  "4",
-  "5",
-  "6",
-  "7",
-  "8",
-  "9",
-  "10",
-  "J",
-  "Q",
-  "K",
-];
-const initialDeck = suits
-  .map((suit) => ranks.map((rank) => ({ suit: suit, rank: rank })))
-  .flat();
 
 export default function Page() {
-  const [winner, setWinner] = useState<string>("");
+  const [playerHand, setPlayerHand] = useState<Card[]>([]);
+  const [dealerHand, setDealerHand] = useState<Card[]>([]);
   const [message, setMessage] = useState<string>("");
-  const [deck, setDeck] = useState<DeckItemType[]>([]);
 
   useEffect(() => {
-    setWinner("player");
-    setMessage("Player win! black jack!");
-    setDeck(initialDeck);
+    const initGame = async () => {
+      const response = await fetch("/api", { method: "GET" });
+      const data = await response.json();
+
+      setPlayerHand(data.playerHand);
+      setDealerHand(data.dealerHand);
+      setMessage(data.message);
+    };
+
+    initGame();
   }, []);
+
+  // 要牌
+  const handleHit = async () => {
+    const response = await fetch("/api", {
+      method: "POST",
+      body: JSON.stringify({ action: "hit" }),
+    });
+    const data = await response.json();
+
+    setPlayerHand(data.playerHand);
+    setDealerHand(data.dealerHand);
+    setMessage(data.message);
+  };
+
+  // 停牌
+  const handleStand = async () => {
+    const response = await fetch("/api", {
+      method: "POST",
+      body: JSON.stringify({ action: "stand" }),
+    });
+    const data = await response.json();
+
+    setPlayerHand(data.playerHand);
+    setDealerHand(data.dealerHand);
+    setMessage(data.message);
+  };
+
+  // 重置游戏
+  const handleReset = async () => {
+    const response = await fetch("/api", { method: "GET" });
+    const data = await response.json();
+
+    setPlayerHand(data.playerHand);
+    setDealerHand(data.dealerHand);
+    setMessage(data.message);
+  };
 
   return (
     <div className="flex flex-col items-center h-screen bg-gray-400">
       <h1 className="my-4 text-4xl bold">Welcome the black jack game!</h1>
       <h2
         className={`my-4 text-2xl bold
-        ${winner === "player" ? "bg-green-500" : "bg-yellow-500"}`}
+        ${message === "玩家赢" ? "bg-green-500" : "bg-yellow-500"}`}
       >
         {message}
       </h2>
@@ -49,10 +73,10 @@ export default function Page() {
       <div>
         dealer hand:
         <div className="flex flex-row gap-2">
-          {deck.length === 0 ? (
+          {dealerHand.length === 0 ? (
             <></>
           ) : (
-            deck.slice(0, 3).map((card, index) => (
+            dealerHand.map((card, index) => (
               <div
                 className="h-42 w-28 border-black border-1 flex flex-col justify-between rounded-sm bg-white"
                 key={index}
@@ -69,10 +93,10 @@ export default function Page() {
       <div>
         Player hand hand:
         <div className="flex flex-row gap-2">
-          {deck.length === 0 ? (
+          {playerHand.length === 0 ? (
             <></>
           ) : (
-            deck.slice(0, 3).map((card, index) => (
+            playerHand.map((card, index) => (
               <div
                 className="h-42 w-28 border-black border-1 flex flex-col justify-between rounded-sm bg-white"
                 key={index}
@@ -87,9 +111,23 @@ export default function Page() {
       </div>
 
       <div className="flex flex-row gap-2 mt-4">
-        <button className="p-1 bg-amber-300 rounded-lg"> hit </button>
-        <button className="p-1 bg-amber-300 rounded-lg"> stand </button>
-        <button className="p-1 bg-amber-300 rounded-lg"> reset </button>
+        {message !== "" ? (
+          <button onClick={handleReset} className="p-1 bg-amber-300 rounded-lg">
+            reset
+          </button>
+        ) : (
+          <>
+            <button onClick={handleHit} className="p-1 bg-amber-300 rounded-lg">
+              hit
+            </button>
+            <button
+              onClick={handleStand}
+              className="p-1 bg-amber-300 rounded-lg"
+            >
+              stand
+            </button>
+          </>
+        )}
       </div>
     </div>
   );
