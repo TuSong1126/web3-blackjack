@@ -7,6 +7,7 @@ interface GameState {
   dealerHand: Card[];
   deck: Card[];
   message: string;
+  score: number;
 }
 
 const suits = ["♠️", "♥️", "♦️", "♣️"];
@@ -34,6 +35,7 @@ const gameState: GameState = {
   dealerHand: [],
   deck: initialDeck,
   message: "",
+  score: 0,
 };
 
 // 从牌堆中随机获取count张牌，并返回随机获取的牌和剩余的牌
@@ -72,6 +74,7 @@ export async function GET(request: Request) {
       dealerHand: [gameState.dealerHand[0], { suit: "?", rank: "?" }],
       //   deck: gameState.deck, // 后端控制牌堆，不应该直接返回给前端
       message: gameState.message,
+      score: gameState.score,
     }),
     { status: 200 }
   );
@@ -89,8 +92,10 @@ export async function POST(request: Request) {
     const playerValue = calculateHandValue(gameState.playerHand);
     if (playerValue > 21) {
       gameState.message = "玩家输，庄家赢";
+      gameState.score -= 100;
     } else if (playerValue === 21) {
       gameState.message = "玩家赢，庄家输";
+      gameState.score += 100;
     }
   }
 
@@ -106,13 +111,17 @@ export async function POST(request: Request) {
 
     if (dealerValue > 21) {
       gameState.message = "玩家赢，庄家输";
+      gameState.score += 100;
     } else if (dealerValue === 21) {
       gameState.message = "玩家输，庄家赢";
+      gameState.score -= 100;
     } else {
       if (playerValue > dealerValue) {
         gameState.message = "玩家赢，庄家输";
+        gameState.score += 100;
       } else if (playerValue < dealerValue) {
         gameState.message = "玩家输，庄家赢";
+        gameState.score -= 100;
       } else {
         gameState.message = "平局";
       }
@@ -131,6 +140,7 @@ export async function POST(request: Request) {
           ? [gameState.dealerHand[0], { suit: "?", rank: "?" }]
           : gameState.dealerHand,
       message: gameState.message,
+      score: gameState.score,
     }),
     { status: 200 }
   );
