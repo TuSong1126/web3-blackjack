@@ -16,6 +16,12 @@ export default function Page() {
       const response = await fetch("/api", { method: "GET" });
       const data = await response.json();
 
+      // 如果出错，则打印错误信息
+      if (data.error) {
+        console.error(data.error);
+        return;
+      }
+
       setPlayerHand(data.playerHand);
       setDealerHand(data.dealerHand);
       setMessage(data.message);
