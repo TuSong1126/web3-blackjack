@@ -10,15 +10,22 @@ export default function Page() {
   const [playerHand, setPlayerHand] = useState<Card[]>([]);
   const [dealerHand, setDealerHand] = useState<Card[]>([]);
   const [message, setMessage] = useState<string>("");
-
+  const [score, setScore] = useState<number>(0);
   useEffect(() => {
     const initGame = async () => {
       const response = await fetch("/api", { method: "GET" });
       const data = await response.json();
 
+      // 如果出错，则打印错误信息
+      if (data.error) {
+        console.error(data.error);
+        return;
+      }
+
       setPlayerHand(data.playerHand);
       setDealerHand(data.dealerHand);
       setMessage(data.message);
+      setScore(data.score);
     };
 
     initGame();
@@ -35,6 +42,7 @@ export default function Page() {
     setPlayerHand(data.playerHand);
     setDealerHand(data.dealerHand);
     setMessage(data.message);
+    setScore(data.score);
   };
 
   // 停牌
@@ -48,6 +56,7 @@ export default function Page() {
     setPlayerHand(data.playerHand);
     setDealerHand(data.dealerHand);
     setMessage(data.message);
+    setScore(data.score);
   };
 
   // 重置游戏
@@ -58,6 +67,7 @@ export default function Page() {
     setPlayerHand(data.playerHand);
     setDealerHand(data.dealerHand);
     setMessage(data.message);
+    setScore(data.score);
   };
 
   return (
@@ -69,7 +79,7 @@ export default function Page() {
       >
         {message}
       </h2>
-
+      <h2 className="my-4 text-2xl bold">Score: {score}</h2>
       <div>
         dealer hand:
         <div className="flex flex-row gap-2">

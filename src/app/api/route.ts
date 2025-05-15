@@ -1,3 +1,55 @@
+/* ----------------------------------- DynamoDBs🔽 ----------------------------------- */
+// save the score into the database
+// get and put score with tables in database
+import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
+import {
+  DynamoDBDocumentClient,
+  PutCommand,
+  GetCommand,
+} from "@aws-sdk/lib-dynamodb";
+
+const client = new DynamoDBClient({
+  region: "us-east-1",
+  credentials: {
+    accessKeyId: process.env.AWS_USER_ACCESS_KEY || "",
+    secretAccessKey: process.env.AWS_USER_ACCESS_KEY_SECRET || "",
+  },
+});
+const docClient = DynamoDBDocumentClient.from(client);
+const TABLE_NAME = "blackJack";
+const DEFAULT_PLAYER = "player";
+
+async function getScore(player: string) {
+  const params = {
+    TableName: TABLE_NAME,
+    Key: { player },
+  };
+
+  try {
+    const result = await docClient.send(new GetCommand(params));
+    return result.Item?.score as number;
+  } catch (error) {
+    throw new Error("Error getting score from DynamoDB: " + error);
+  }
+}
+
+async function writeScore(player: string, score: number) {
+  const params = {
+    TableName: TABLE_NAME,
+    Item: {
+      player: player, // 分区键
+      score: score, // 得分
+    },
+  };
+
+  try {
+    await docClient.send(new PutCommand(params));
+  } catch (error) {
+    throw new Error("Error writing score to DynamoDB: " + error);
+  }
+}
+/* ----------------------------------- DynamoDBs🔼 ----------------------------------- */
+
 interface Card {
   suit: string;
   rank: string;
@@ -7,6 +59,7 @@ interface GameState {
   dealerHand: Card[];
   deck: Card[];
   message: string;
+  score: number;
 }
 
 const suits = ["♠️", "♥️", "♦️", "♣️"];
@@ -34,6 +87,7 @@ const gameState: GameState = {
   dealerHand: [],
   deck: initialDeck,
   message: "",
+  score: 0,
 };
 
 // 从牌堆中随机获取count张牌，并返回随机获取的牌和剩余的牌
@@ -66,12 +120,23 @@ export async function GET(request: Request) {
   gameState.deck = newDeck;
   gameState.message = "";
 
+  try {
+    const score = await getScore(DEFAULT_PLAYER);
+    gameState.score = score || 0;
+  } catch (error) {
+    console.error("Error getting score from DynamoDB: " + error);
+    return new Response(JSON.stringify({ error: "Error getting score" }), {
+      status: 500,
+    });
+  }
+
   return new Response(
     JSON.stringify({
       playerHand: gameState.playerHand,
       dealerHand: [gameState.dealerHand[0], { suit: "?", rank: "?" }],
       //   deck: gameState.deck, // 后端控制牌堆，不应该直接返回给前端
       message: gameState.message,
+      score: gameState.score,
     }),
     { status: 200 }
   );
@@ -89,8 +154,10 @@ export async function POST(request: Request) {
     const playerValue = calculateHandValue(gameState.playerHand);
     if (playerValue > 21) {
       gameState.message = "玩家输，庄家赢";
+      gameState.score -= 100;
     } else if (playerValue === 21) {
       gameState.message = "玩家赢，庄家输";
+      gameState.score += 100;
     }
   }
 
@@ -106,13 +173,17 @@ export async function POST(request: Request) {
 
     if (dealerValue > 21) {
       gameState.message = "玩家赢，庄家输";
+      gameState.score += 100;
     } else if (dealerValue === 21) {
       gameState.message = "玩家输，庄家赢";
+      gameState.score -= 100;
     } else {
       if (playerValue > dealerValue) {
         gameState.message = "玩家赢，庄家输";
+        gameState.score += 100;
       } else if (playerValue < dealerValue) {
         gameState.message = "玩家输，庄家赢";
+        gameState.score -= 100;
       } else {
         gameState.message = "平局";
       }
@@ -120,6 +191,15 @@ export async function POST(request: Request) {
   } else {
     return new Response(JSON.stringify({ error: "Invalid action" }), {
       status: 400,
+    });
+  }
+
+  try {
+    await writeScore(DEFAULT_PLAYER, gameState.score);
+  } catch (error) {
+    console.error("Error writing score to DynamoDB: " + error);
+    return new Response(JSON.stringify({ error: "Error writing score" }), {
+      status: 500,
     });
   }
 
@@ -131,6 +211,7 @@ export async function POST(request: Request) {
           ? [gameState.dealerHand[0], { suit: "?", rank: "?" }]
           : gameState.dealerHand,
       message: gameState.message,
+      score: gameState.score,
     }),
     { status: 200 }
   );
