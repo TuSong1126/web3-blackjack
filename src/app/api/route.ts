@@ -91,15 +91,18 @@ const gameState: GameState = {
 
 // 从牌堆中随机获取count张牌，并返回随机获取的牌和剩余的牌
 const getRandomCards = (deck: Card[], count: number) => {
-  const randomIndexSet = new Set<number>();
+  const selectedIndices = new Set<number>();
 
-  while (randomIndexSet.size < count) {
-    const randomIndex = Math.floor(Math.random() * deck.length);
-    randomIndexSet.add(randomIndex);
+  while (selectedIndices.size < count) {
+    // 使用偏向于小索引的随机算法
+    // Math.random() * Math.random() 会产生偏向于0的分布
+    const randomBias = Math.random() * Math.random();
+    const randomIndex = Math.floor(randomBias * deck.length);
+    selectedIndices.add(randomIndex);
   }
 
-  const randomCards = deck.filter((_, index) => randomIndexSet.has(index));
-  const remainingDeck = deck.filter((_, index) => !randomIndexSet.has(index));
+  const randomCards = deck.filter((_, index) => selectedIndices.has(index));
+  const remainingDeck = deck.filter((_, index) => !selectedIndices.has(index));
 
   return [randomCards, remainingDeck];
 };
