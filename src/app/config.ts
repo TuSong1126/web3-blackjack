@@ -29,3 +29,31 @@ export function calculateHandValue(hand: Card[]): number {
 
   return value;
 }
+
+// 添加全局CSS动画定义
+export const globalStyles = `
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  
+  @keyframes pulseOnce {
+    0% { transform: scale(0.95); opacity: 0.7; }
+    50% { transform: scale(1.05); opacity: 1; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  
+  .animate-fadeIn {
+    animation: fadeIn 0.4s ease-out;
+  }
+`;
+
+// 定义sleep函数
+export const sleep = (ms: number): Promise<void> => {
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => {
+      clearTimeout(timer);
+      resolve();
+    }, ms);
+  });
+};
