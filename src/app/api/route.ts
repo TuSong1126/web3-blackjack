@@ -9,6 +9,7 @@ import {
 } from "@aws-sdk/lib-dynamodb";
 import { verifyMessage } from "viem";
 import jwt from "jsonwebtoken";
+import { Card, calculateHandValue } from "../config";
 
 const client = new DynamoDBClient({
   region: "us-east-1",
@@ -52,10 +53,6 @@ async function writeScore(player: string, score: number) {
 }
 /* ----------------------------------- DynamoDBs🔼 ----------------------------------- */
 
-interface Card {
-  suit: string;
-  rank: string;
-}
 interface GameState {
   playerHand: Card[];
   dealerHand: Card[];
@@ -212,13 +209,13 @@ export async function POST(request: Request) {
 
   // 停牌
   else if (action === "stand") {
-    const dealerValue = calculateHandValue(gameState.dealerHand);
     while (calculateHandValue(gameState.dealerHand) < 17) {
       const [cards, newDeck] = getRandomCards(gameState.deck, 1);
       gameState.dealerHand.push(...cards);
       gameState.deck = newDeck;
     }
     const playerValue = calculateHandValue(gameState.playerHand);
+    const dealerValue = calculateHandValue(gameState.dealerHand);
 
     if (dealerValue > 21) {
       gameState.message = "玩家赢，庄家输";
@@ -264,27 +261,4 @@ export async function POST(request: Request) {
     }),
     { status: 200 }
   );
-}
-
-// 计算手牌值
-function calculateHandValue(hand: Card[]): number {
-  let value = 0;
-  let acesCount = 0;
-  hand.forEach((card) => {
-    if (card.rank === "A") {
-      acesCount++;
-      value += 11;
-    } else if (card.rank === "J" || card.rank === "Q" || card.rank === "K") {
-      value += 10;
-    } else {
-      value += parseInt(card.rank);
-    }
-  });
-
-  // 如果手牌价值大于21且有A，则将A的价值改为1(11->1)
-  while (value > 21 && acesCount > 0) {
-    value -= 10;
-    acesCount--;
-  }
-  return value;
 }
