@@ -9,6 +9,7 @@ import {
 } from "@aws-sdk/lib-dynamodb";
 import { verifyMessage } from "viem";
 import jwt from "jsonwebtoken";
+import { Card, calculateHandValue } from "../config";
 
 const client = new DynamoDBClient({
   region: "us-east-1",
@@ -52,10 +53,6 @@ async function writeScore(player: string, score: number) {
 }
 /* ----------------------------------- DynamoDBs🔼 ----------------------------------- */
 
-interface Card {
-  suit: string;
-  rank: string;
-}
 interface GameState {
   playerHand: Card[];
   dealerHand: Card[];
@@ -94,15 +91,18 @@ const gameState: GameState = {
 
 // 从牌堆中随机获取count张牌，并返回随机获取的牌和剩余的牌
 const getRandomCards = (deck: Card[], count: number) => {
-  const randomIndexSet = new Set<number>();
+  const selectedIndices = new Set<number>();
 
-  while (randomIndexSet.size < count) {
-    const randomIndex = Math.floor(Math.random() * deck.length);
-    randomIndexSet.add(randomIndex);
+  while (selectedIndices.size < count) {
+    // 使用偏向于小索引的随机算法
+    // Math.random() * Math.random() 会产生偏向于0的分布
+    const randomBias = Math.random() * Math.random();
+    const randomIndex = Math.floor(randomBias * deck.length);
+    selectedIndices.add(randomIndex);
   }
 
-  const randomCards = deck.filter((_, index) => randomIndexSet.has(index));
-  const remainingDeck = deck.filter((_, index) => !randomIndexSet.has(index));
+  const randomCards = deck.filter((_, index) => selectedIndices.has(index));
+  const remainingDeck = deck.filter((_, index) => !selectedIndices.has(index));
 
   return [randomCards, remainingDeck];
 };
@@ -212,13 +212,13 @@ export async function POST(request: Request) {
 
   // 停牌
   else if (action === "stand") {
-    const dealerValue = calculateHandValue(gameState.dealerHand);
     while (calculateHandValue(gameState.dealerHand) < 17) {
       const [cards, newDeck] = getRandomCards(gameState.deck, 1);
       gameState.dealerHand.push(...cards);
       gameState.deck = newDeck;
     }
     const playerValue = calculateHandValue(gameState.playerHand);
+    const dealerValue = calculateHandValue(gameState.dealerHand);
 
     if (dealerValue > 21) {
       gameState.message = "玩家赢，庄家输";
@@ -264,27 +264,4 @@ export async function POST(request: Request) {
     }),
     { status: 200 }
   );
-}
-
-// 计算手牌值
-function calculateHandValue(hand: Card[]): number {
-  let value = 0;
-  let acesCount = 0;
-  hand.forEach((card) => {
-    if (card.rank === "A") {
-      acesCount++;
-      value += 11;
-    } else if (card.rank === "J" || card.rank === "Q" || card.rank === "K") {
-      value += 10;
-    } else {
-      value += parseInt(card.rank);
-    }
-  });
-
-  // 如果手牌价值大于21且有A，则将A的价值改为1(11->1)
-  while (value > 21 && acesCount > 0) {
-    value -= 10;
-    acesCount--;
-  }
-  return value;
 }
