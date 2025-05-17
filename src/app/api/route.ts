@@ -120,15 +120,15 @@ export async function GET(request: Request) {
   gameState.deck = newDeck;
   gameState.message = "";
 
-  try {
-    const score = await getScore(DEFAULT_PLAYER);
-    gameState.score = score || 0;
-  } catch (error) {
-    console.error("Error getting score from DynamoDB: " + error);
-    return new Response(JSON.stringify({ error: "Error getting score" }), {
-      status: 500,
-    });
-  }
+  // try {
+  //   const score = await getScore(DEFAULT_PLAYER);
+  //   gameState.score = score || 0;
+  // } catch (error) {
+  //   console.error("Error getting score from DynamoDB: " + error);
+  //   return new Response(JSON.stringify({ error: "Error getting score" }), {
+  //     status: 500,
+  //   });
+  // }
 
   return new Response(
     JSON.stringify({
@@ -206,14 +206,14 @@ export async function POST(request: Request) {
     });
   }
 
-  try {
-    await writeScore(DEFAULT_PLAYER, gameState.score);
-  } catch (error) {
-    console.error("Error writing score to DynamoDB: " + error);
-    return new Response(JSON.stringify({ error: "Error writing score" }), {
-      status: 500,
-    });
-  }
+  // try {
+  //   await writeScore(DEFAULT_PLAYER, gameState.score);
+  // } catch (error) {
+  //   console.error("Error writing score to DynamoDB: " + error);
+  //   return new Response(JSON.stringify({ error: "Error writing score" }), {
+  //     status: 500,
+  //   });
+  // }
 
   return new Response(
     JSON.stringify({
