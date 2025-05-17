@@ -37,7 +37,10 @@ export default function Page() {
   const handleHit = async () => {
     const response = await fetch("/api", {
       method: "POST",
-      body: JSON.stringify({ action: "hit" }),
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+      body: JSON.stringify({ action: "hit", playerAddress: address }),
     });
     const data = await response.json();
 
@@ -51,7 +54,10 @@ export default function Page() {
   const handleStand = async () => {
     const response = await fetch("/api", {
       method: "POST",
-      body: JSON.stringify({ action: "stand" }),
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+      body: JSON.stringify({ action: "stand", playerAddress: address }),
     });
     const data = await response.json();
 
@@ -88,10 +94,17 @@ export default function Page() {
 
       const response = await fetch("/api", {
         method: "POST",
-        body: JSON.stringify({ action: "auth", address, signature, message }),
+        body: JSON.stringify({
+          action: "auth",
+          playerAddress: address,
+          signature,
+          message,
+        }),
       });
 
       if (response.status === 200) {
+        const { token } = await response.json();
+        localStorage.setItem("token", token);
         setSigned(true);
         initGame();
       }

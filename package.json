@@ -14,6 +14,8 @@
     "@rainbow-me/rainbowkit": "^2.2.5",
     "@tailwindcss/postcss": "^4.1.5",
     "@tanstack/react-query": "5.45.1",
+    "@types/jsonwebtoken": "^9.0.9",
+    "jsonwebtoken": "^9.0.2",
     "next": "14.2.4",
     "postcss": "^8.5.3",
     "react": "^18.3.1",

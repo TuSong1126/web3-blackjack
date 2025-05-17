@@ -8,6 +8,8 @@ import {
   GetCommand,
 } from "@aws-sdk/lib-dynamodb";
 import { verifyMessage } from "viem";
+import jwt from "jsonwebtoken";
+
 const client = new DynamoDBClient({
   region: "us-east-1",
   credentials: {
@@ -144,17 +146,52 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   const body = await request.json();
-  const { action } = body;
+  const { action, playerAddress } = body;
 
   // 认证
   if (action === "auth") {
-    const { address, signature, message } = body;
-    const isValid = await verifyMessage({ address, message, signature });
+    const { signature, message } = body;
+    const isValid = await verifyMessage({
+      address: playerAddress,
+      message,
+      signature,
+    });
+    const token = jwt.sign({ playerAddress }, process.env.JWT_SECRET || "", {
+      expiresIn: "24h",
+    });
+
     if (isValid) {
-      return new Response(JSON.stringify({ success: true }), { status: 200 });
+      return new Response(JSON.stringify({ success: true, token }), {
+        status: 200,
+      });
     } else {
       return new Response(JSON.stringify({ success: false }), { status: 400 });
     }
+  }
+
+  // jwt鉴权
+  const token = request.headers.get("Authorization")?.split(" ")[1];
+  if (!token) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+    });
+  }
+  const decoded = jwt.verify(token, process.env.JWT_SECRET || "") as {
+    playerAddress: string;
+  };
+  if (!decoded) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+    });
+  }
+
+  if (
+    decoded.playerAddress?.toLocaleLowerCase() !==
+    playerAddress?.toLocaleLowerCase()
+  ) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+    });
   }
 
   // 要牌
