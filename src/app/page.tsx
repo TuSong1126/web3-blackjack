@@ -102,11 +102,11 @@ export default function Page() {
 
   if (!signed) {
     return (
-      <div className="flex flex-col items-center h-screen bg-gray-400">
+      <div className="flex flex-col items-center h-screen bg-gray-400 h-full justify-center gap-16">
         <ConnectButton />
         {isConnected && (
           <button
-            className="bg-amber-300 rounded-lg p-2 cursor-pointer mt-4"
+            className="bg-amber-300 rounded-lg p-2 cursor-pointer "
             onClick={handleSign}
           >
             Sign with you wallet
