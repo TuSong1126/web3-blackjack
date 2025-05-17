@@ -7,6 +7,8 @@ import {
   PutCommand,
   GetCommand,
 } from "@aws-sdk/lib-dynamodb";
+import { verifyMessage } from "viem";
+import jwt from "jsonwebtoken";
 
 const client = new DynamoDBClient({
   region: "us-east-1",
@@ -120,15 +122,15 @@ export async function GET(request: Request) {
   gameState.deck = newDeck;
   gameState.message = "";
 
-  try {
-    const score = await getScore(DEFAULT_PLAYER);
-    gameState.score = score || 0;
-  } catch (error) {
-    console.error("Error getting score from DynamoDB: " + error);
-    return new Response(JSON.stringify({ error: "Error getting score" }), {
-      status: 500,
-    });
-  }
+  // try {
+  //   const score = await getScore(DEFAULT_PLAYER);
+  //   gameState.score = score || 0;
+  // } catch (error) {
+  //   console.error("Error getting score from DynamoDB: " + error);
+  //   return new Response(JSON.stringify({ error: "Error getting score" }), {
+  //     status: 500,
+  //   });
+  // }
 
   return new Response(
     JSON.stringify({
@@ -143,7 +145,54 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const { action } = await request.json();
+  const body = await request.json();
+  const { action, playerAddress } = body;
+
+  // 认证
+  if (action === "auth") {
+    const { signature, message } = body;
+    const isValid = await verifyMessage({
+      address: playerAddress,
+      message,
+      signature,
+    });
+    const token = jwt.sign({ playerAddress }, process.env.JWT_SECRET || "", {
+      expiresIn: "24h",
+    });
+
+    if (isValid) {
+      return new Response(JSON.stringify({ success: true, token }), {
+        status: 200,
+      });
+    } else {
+      return new Response(JSON.stringify({ success: false }), { status: 400 });
+    }
+  }
+
+  // jwt鉴权
+  const token = request.headers.get("Authorization")?.split(" ")[1];
+  if (!token) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+    });
+  }
+  const decoded = jwt.verify(token, process.env.JWT_SECRET || "") as {
+    playerAddress: string;
+  };
+  if (!decoded) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+    });
+  }
+
+  if (
+    decoded.playerAddress?.toLocaleLowerCase() !==
+    playerAddress?.toLocaleLowerCase()
+  ) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+    });
+  }
 
   // 要牌
   if (action === "hit") {
@@ -194,14 +243,14 @@ export async function POST(request: Request) {
     });
   }
 
-  try {
-    await writeScore(DEFAULT_PLAYER, gameState.score);
-  } catch (error) {
-    console.error("Error writing score to DynamoDB: " + error);
-    return new Response(JSON.stringify({ error: "Error writing score" }), {
-      status: 500,
-    });
-  }
+  // try {
+  //   await writeScore(DEFAULT_PLAYER, gameState.score);
+  // } catch (error) {
+  //   console.error("Error writing score to DynamoDB: " + error);
+  //   return new Response(JSON.stringify({ error: "Error writing score" }), {
+  //     status: 500,
+  //   });
+  // }
 
   return new Response(
     JSON.stringify({
