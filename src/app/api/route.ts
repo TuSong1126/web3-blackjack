@@ -7,7 +7,7 @@ import {
   PutCommand,
   GetCommand,
 } from "@aws-sdk/lib-dynamodb";
-
+import { verifyMessage } from "viem";
 const client = new DynamoDBClient({
   region: "us-east-1",
   credentials: {
@@ -143,7 +143,19 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const { action } = await request.json();
+  const body = await request.json();
+  const { action } = body;
+
+  // 认证
+  if (action === "auth") {
+    const { address, signature, message } = body;
+    const isValid = await verifyMessage({ address, message, signature });
+    if (isValid) {
+      return new Response(JSON.stringify({ success: true }), { status: 200 });
+    } else {
+      return new Response(JSON.stringify({ success: false }), { status: 400 });
+    }
+  }
 
   // 要牌
   if (action === "hit") {
