@@ -45,7 +45,9 @@ export default function Page() {
     setDealerHand([]);
 
     // 请求游戏数据
-    const response = await fetch("/api", { method: "GET" });
+    const response = await fetch(`/api?playerAddress=${address}`, {
+      method: "GET",
+    });
     const data = await response.json();
 
     // 如果出错，则打印错误信息
@@ -106,7 +108,9 @@ export default function Page() {
     setMessage("");
 
     // 请求游戏数据
-    const response = await fetch("/api", { method: "GET" });
+    const response = await fetch(`/api?playerAddress=${address}`, {
+      method: "GET",
+    });
     const data = await response.json();
 
     // 延迟500ms，让用户看到等待状态
