@@ -20,12 +20,11 @@ const client = new DynamoDBClient({
 });
 const docClient = DynamoDBDocumentClient.from(client);
 const TABLE_NAME = "blackJack";
-const DEFAULT_PLAYER = "player";
 
-async function getScore(player: string) {
+async function getScore(playerAddress: string) {
   const params = {
     TableName: TABLE_NAME,
-    Key: { player },
+    Key: { player: playerAddress },
   };
 
   try {
@@ -36,11 +35,11 @@ async function getScore(player: string) {
   }
 }
 
-async function writeScore(player: string, score: number) {
+async function writeScore(playerAddress: string, score: number) {
   const params = {
     TableName: TABLE_NAME,
     Item: {
-      player: player, // 分区键
+      player: playerAddress, // 分区键
       score: score, // 得分
     },
   };
@@ -108,6 +107,17 @@ const getRandomCards = (deck: Card[], count: number) => {
 };
 
 export async function GET(request: Request) {
+  const url = new URL(request.url);
+  const playerAddress = url.searchParams.get("playerAddress");
+  if (!playerAddress) {
+    return new Response(
+      JSON.stringify({ error: "Player address is required" }),
+      {
+        status: 400,
+      }
+    );
+  }
+
   // 重置游戏状态
   gameState.playerHand = [];
   gameState.dealerHand = [];
@@ -123,7 +133,7 @@ export async function GET(request: Request) {
   gameState.message = "";
 
   // try {
-  //   const score = await getScore(DEFAULT_PLAYER);
+  //   const score = await getScore(playerAddress);
   //   gameState.score = score || 0;
   // } catch (error) {
   //   console.error("Error getting score from DynamoDB: " + error);
@@ -244,7 +254,7 @@ export async function POST(request: Request) {
   }
 
   // try {
-  //   await writeScore(DEFAULT_PLAYER, gameState.score);
+  //   await writeScore(playerAddress, gameState.score);
   // } catch (error) {
   //   console.error("Error writing score to DynamoDB: " + error);
   //   return new Response(JSON.stringify({ error: "Error writing score" }), {
